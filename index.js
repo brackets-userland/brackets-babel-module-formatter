@@ -14,26 +14,31 @@ function ModuleFormatter() {}
 ModuleFormatter.prototype.transform = function (ast) {
   // this is ran after all transformers have had their turn at modifying the ast
   // feel free to modify this however
-  // save the original body
-  var body = ast.body;
-  // put together params for the wrapper function
+  var originalBody = ast.body;
+
+  // var __export__ = {};
+  var exportDeclaration = t.variableDeclaration("var", [t.variableDeclarator(t.identifier(EXPORT_NAME), t.objectExpression([]))]);
+
+  // require, exports, module
   var params = [
     t.identifier("require"),
     t.identifier("exports"),
     t.identifier("module")
   ];
-  // exports object
-  var exportObj = t.variableDeclaration("var", [t.variableDeclarator(t.identifier(EXPORT_NAME), t.objectExpression([]))]);
-  body.unshift(exportObj);
+
+  // function (require, exports, module) { ... }
+  var container = t.functionExpression(null, params, t.blockStatement(originalBody));
+
+  // define(function (require, exports, module) { ... });
+  var defineCall = t.callExpression(t.identifier("define"), [container]);
+
+  // module.exports = __export__;
   var moduleExports = t.memberExpression(t.identifier("module"), t.identifier("exports"));
   var moduleExportsAssign = t.assignmentExpression("=", moduleExports, t.identifier(EXPORT_NAME));
-  body.push(t.expressionStatement(moduleExportsAssign));
-  // wrap the original body in a function
-  var container = t.functionExpression(null, params, t.blockStatement(body));
-  // make a define call with the wrapper body
-  var call = t.callExpression(t.identifier("define"), [container]);
+  originalBody.push(t.expressionStatement(moduleExportsAssign));
+
   // assign a new body to the ast
-  ast.body = [t.expressionStatement(call)];
+  ast.body = [exportDeclaration, t.expressionStatement(defineCall)];
 };
 
 ModuleFormatter.prototype.importDeclaration = function (node, nodes) {
