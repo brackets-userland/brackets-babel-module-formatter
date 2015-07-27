@@ -43,6 +43,8 @@ ModuleFormatter.prototype.transform = function (ast) {
 
 ModuleFormatter.prototype.importDeclaration = function (node, nodes) {
   // node is an ImportDeclaration
+  var ref = t.callExpression(t.identifier("require"), [node.source]);
+  nodes.push(t.expressionStatement(ref));
 };
 
 ModuleFormatter.prototype.importSpecifier = function (specifier, node, nodes) {
