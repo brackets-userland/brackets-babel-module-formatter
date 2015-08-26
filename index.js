@@ -19,6 +19,13 @@ ModuleFormatter.prototype.transform = function (ast) {
   // var __export__ = {};
   var exportDeclaration = t.variableDeclaration("var", [t.variableDeclarator(t.identifier(EXPORT_NAME), t.objectExpression([]))]);
 
+  // if (typeof define === 'undefined') { var define = function (cb) { cb(require, exports, module); } }
+  var ifNotDefineCondition = t.binaryExpression("===", t.unaryExpression("typeof", t.identifier("define")), t.literal("undefined"));
+  var ifNotDefineCall = t.expressionStatement(t.callExpression(t.identifier("cb"), [t.identifier("require"),t.identifier("exports"),t.identifier("module")]));
+  var ifNotDefineFunc = t.functionDeclaration(null, [t.identifier("cb")], t.blockStatement([ifNotDefineCall]));
+  var ifNotDefineContent = t.variableDeclaration("var", [t.variableDeclarator(t.identifier("define"), ifNotDefineFunc)]);
+  var ifNotDefine = t.ifStatement(ifNotDefineCondition, t.blockStatement([ifNotDefineContent]));
+
   // require, exports, module
   var params = [
     t.identifier("require"),
@@ -38,7 +45,7 @@ ModuleFormatter.prototype.transform = function (ast) {
   originalBody.push(t.expressionStatement(moduleExportsAssign));
 
   // assign a new body to the ast
-  ast.body = [exportDeclaration, t.expressionStatement(defineCall)];
+  ast.body = [ifNotDefine, exportDeclaration, t.expressionStatement(defineCall)];
 };
 
 ModuleFormatter.prototype.importDeclaration = function (node, nodes) {
